@@ -1,7 +1,7 @@
 """Flask application factory for WebImageDrive."""
 from __future__ import annotations
 import os
-from flask import Flask
+from flask import Flask, redirect
 from dotenv import load_dotenv
 from .config import get_config
 from .extensions import init_extensions
@@ -61,6 +61,15 @@ def create_app(config_name: str | None = None) -> Flask:
     # Register error handlers after extensions
     register_error_handlers(app)
     register_blueprints(app)
+
+    # Developer-friendly root & favicon handlers to avoid confusing 404 logs
+    @app.route("/")
+    def _root_redirect():  # type: ignore
+        return redirect("/api/v1/health", code=302)
+
+    @app.route("/favicon.ico")
+    def _favicon():  # type: ignore
+        return ("", 204)
 
     # Minimal production safety check for SECRET_KEY
     if (config_name or "dev").lower() in {"prod", "production"}:
