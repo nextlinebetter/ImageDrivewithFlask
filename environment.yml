@@ -8,23 +8,24 @@ dependencies:
   - python=3.12
   - pip
   # Conda packages (compiled/binary heavy ones here)
-  - numpy>=2,<3
+  - numpy
   - pillow
   - faiss-cpu
   # Torch stack compatible with NumPy 2 on macOS conda
-  - pytorch>=2.4,<2.6
-  - torchvision>=0.19,<0.21
+  - pytorch
+  - torchvision
   # The rest via pip
   - pip:
-      - Flask>=3.0
-      - Flask-SQLAlchemy>=3.1
-      - Flask-Migrate>=4.0
-      - Flask-JWT-Extended>=4.6
-      - python-dotenv>=1.0
-      - bcrypt>=4.0
-      - sentence-transformers>=2.6
-      - tqdm>=4.66
+      - Flask
+      - Flask-SQLAlchemy
+      - Flask-Migrate
+      - Flask-JWT-Extended
+      - python-dotenv
+      - bcrypt
+      - sentence-transformers
+      - tqdm
       # OCR stack: doctr pinned for stability; works with NumPy 2 when torch/vision are compatible
-      - python-doctr==1.0.0
-      - opencv-python-headless>=4.8
-      - rapidfuzz>=3.6
+      - python-doctr
+      - opencv-python-headless
+      - rapidfuzz
+      - kaggle

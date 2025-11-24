@@ -23,6 +23,16 @@ uploads/
 # Frontend
 frontend/node_modules/
 frontend/dist/
+frontend/package-lock.json
 
 # VS Code
 .history/
+
+# Test results
+MyTestResults/
+
+# migrations
+migrations/
+
+# datasets
+data/

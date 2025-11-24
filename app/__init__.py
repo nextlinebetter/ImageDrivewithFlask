@@ -14,6 +14,8 @@ from .blueprints.search import search_bp
 from .blueprints.search_ocr import search_ocr_bp
 from .blueprints.analytics import analytics_bp
 
+from .initialization import init_base_data
+
 BLUEPRINTS = [
     core_bp,
     auth_bp,
@@ -61,6 +63,9 @@ def create_app(config_name: str | None = None) -> Flask:
     # Register error handlers after extensions
     register_error_handlers(app)
     register_blueprints(app)
+    
+    # initialize base data
+    init_base_data(app)
 
     # Developer-friendly root & favicon handlers to avoid confusing 404 logs
     @app.route("/")

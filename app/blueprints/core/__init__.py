@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify, current_app
 import sys
 from importlib.util import find_spec
 from app.utils.errors import AppError
-from app.services import clip_runtime
+from app.services.clip_pipeline import get_embedding_dim
 
 core_bp = Blueprint("core", __name__, url_prefix="/api/v1")
 
@@ -41,11 +41,7 @@ def health():
         info["numpy_version"] = None
     # Report configured embedding backend (without forcing model load)
     try:
-        info["embedding_backend_config"] = (
-            "team-processor" if current_app.config.get("USE_TEAM_CLIP") else "sentence-transformers"
-        )
-        info["embedding_backend_loaded"] = clip_runtime.embedding_backend()
-        info["embedding_dim"] = clip_runtime.embedding_dim()
+        info["embedding_dim"] = get_embedding_dim()
     except Exception:
         pass
     return jsonify(info)

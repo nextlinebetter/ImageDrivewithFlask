@@ -41,7 +41,7 @@ paths:
               schema:
                 type: object
                 properties:
-                  access_token:
+                  access_token:  # TODO: "data" wrapper missed ?
                     type: string
                   refresh_token:
                     type: string

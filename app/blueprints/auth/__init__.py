@@ -29,15 +29,20 @@ def register():
     data = request.get_json(silent=True) or {}
     username = data.get("username", "").strip()
     password = data.get("password", "")
+    
     if not USERNAME_RE.match(username):
         return error("INVALID_USERNAME", "用户名不合法，需 3-32 位字母数字或下划线")
+    
     if len(password) < 6:
         return error("WEAK_PASSWORD", "密码至少 6 位")
+    
     if User.query.filter_by(username=username).first():
         return error("USERNAME_EXISTS", "用户名已存在")
+    
     user = User(username=username, password_hash=hash_password(password))
     db.session.add(user)
     db.session.commit()
+    
     return ok({"user_id": user.id, "username": user.username})
 
 
@@ -46,12 +51,15 @@ def login():
     data = request.get_json(silent=True) or {}
     username = data.get("username", "").strip()
     password = data.get("password", "")
+    
     user = User.query.filter_by(username=username).first()
     if not user or not verify_password(password, user.password_hash):
         return error("AUTH_FAILED", "用户名或密码错误", http=401)
+    
     identity = str(user.id)
     access = create_access_token(identity=identity)
     refresh = create_refresh_token(identity=identity)
+    
     return ok({"access_token": access, "refresh_token": refresh})
 
 
@@ -63,6 +71,7 @@ def refresh():
     return ok({"access_token": access})
 
 
+# TODO: When is this called ?
 @auth_bp.get("/me")
 @jwt_required()
 def me():

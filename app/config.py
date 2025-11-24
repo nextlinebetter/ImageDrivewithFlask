@@ -48,13 +48,17 @@ class Config:
 
     # CLIP model (for online embedding)
     CLIP_MODEL_NAME = os.environ.get("CLIP_MODEL_NAME", "clip-ViT-B-32")
-    # Toggle to use teammate's EmbeddingProcessor instead of built-in runtime
-    USE_TEAM_CLIP = os.environ.get("USE_TEAM_CLIP", "0").lower() in {"1", "true", "yes"}
-    # Optional override for teammate processor path (defaults to repo path)
-    TEAM_CLIP_PROCESSOR_PATH = os.environ.get("TEAM_CLIP_PROCESSOR_PATH", "")
+    
+    # OCR model architectures
+    OCR_DET_ARCH = os.environ.get("OCR_DET_ARCH", "db_mobilenet_v3_large")
+    OCR_RECO_ARCH = os.environ.get("OCR_RECO_ARCH", "crnn_mobilenet_v3_large")
 
     # FAISS index persistence (per-user) directory
     INDEX_DIR = os.environ.get("INDEX_DIR", os.path.join(os.getcwd(), "instance", "faiss"))
+
+    # Base dataset
+    DATASET_PATH = os.environ.get("DATASET_PATH", "./data/tiny-imagenet-200/train")
+    ENABLE_BATCH_UPLOAD = os.environ.get("ENABLE_BATCH_UPLOAD", "false").lower() == "true"
 
 
 class DevConfig(Config):

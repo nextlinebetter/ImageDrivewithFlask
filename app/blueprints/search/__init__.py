@@ -7,7 +7,7 @@ from app.models import Image, Embedding
 from app.services.embedding_io import from_bytes
 from app.services.vector_index import FaissVectorIndex
 from app.services import index_store
-from app.services.clip_runtime import embed_text
+from app.services.clip_pipeline import embed_text
 from app.utils.responses import ok, error
 
 search_bp = Blueprint("search", __name__, url_prefix="/api/v1/search")

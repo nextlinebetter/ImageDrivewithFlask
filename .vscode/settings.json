@@ -1,13 +1,12 @@
 {
   "files.exclude": {
-    "**/.DS_Store": true,
     "**/__pycache__": true,
+    "**/.DS_Store": true,
+    "**/*.ipynb": true,
     "**/*.pyc": true,
-    "instance": true,
-    "uploads": true,
-    "frontend/node_modules": true,
     "frontend/dist": true,
-    "**/*.ipynb": true
+    "frontend/node_modules": true,
+    "uploads": true
   },
   "search.exclude": {
     "**/.DS_Store": true,

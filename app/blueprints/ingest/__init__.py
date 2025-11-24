@@ -5,7 +5,7 @@ from flask import Blueprint, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.extensions import db
 from app.models import Image, Embedding, OCRText
-from app.services.ocr import extract_text as ocr_extract, extract_text_batch as ocr_extract_batch
+from app.services.ocr_pipeline import ocr_extract_from_image_path, ocr_extract_from_image_path_batch
 from app.services.embedding_io import l2_normalize, to_bytes
 from app.utils.responses import ok, error
 
@@ -172,7 +172,7 @@ def ingest_ocr():
     if not os.path.exists(local_path):
         return error("FILE_NOT_FOUND", "文件不存在，无法进行 OCR", http=404)
 
-    text = ocr_extract(local_path) or ""
+    text = ocr_extract_from_image_path(local_path) or ""
 
     row = OCRText.query.filter_by(image_id=image_id).first()
     created = False
@@ -258,11 +258,11 @@ def ingest_ocr_batch():
     results = []
     texts: List[str | None] = []
     if paths:
-        outs = ocr_extract_batch(paths, batch_size=batch_size) or []
+        outs = ocr_extract_from_image_path_batch(paths, batch_size=batch_size) or []
         # normalize length
         if len(outs) != len(paths):
             # fallback: per-image
-            outs = [ocr_extract(p) for p in paths]
+            outs = [ocr_extract_from_image_path(p) for p in paths]
         texts = [o or "" for o in outs]
 
     # Upsert DB per successful mapped item
