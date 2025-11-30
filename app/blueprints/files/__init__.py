@@ -76,7 +76,7 @@ def upload_file():
         mime_type=mime,
         checksum=checksum,
         status="READY",
-        visibility="public" if owner_id == 1 else "private",  # user ID 1 is public user
+        visibility="private",
     )
     db.session.add(img)
     db.session.commit()

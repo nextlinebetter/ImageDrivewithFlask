@@ -3,6 +3,10 @@ from __future__ import annotations
 import os
 from flask import Flask, redirect
 from dotenv import load_dotenv
+# Load env before import get_config
+load_dotenv(override=False)
+
+from pathlib import Path
 from .config import get_config
 from .extensions import init_extensions
 from .utils.errors import register_error_handlers  # new
@@ -13,8 +17,6 @@ from .blueprints.ingest import ingest_bp
 from .blueprints.search import search_bp
 from .blueprints.search_ocr import search_ocr_bp
 from .blueprints.analytics import analytics_bp
-
-from .initialization import init_base_data
 
 BLUEPRINTS = [
     core_bp,
@@ -38,9 +40,6 @@ def create_app(config_name: str | None = None) -> Flask:
     2. Init extensions
     3. Register blueprints
     """
-    # Load .env first (defaults < .env < environment variables)
-    load_dotenv(override=False)
-
     if config_name is None:
         config_name = os.environ.get("FLASK_CONFIG", "dev")
     config_obj = get_config(config_name)
@@ -63,9 +62,6 @@ def create_app(config_name: str | None = None) -> Flask:
     # Register error handlers after extensions
     register_error_handlers(app)
     register_blueprints(app)
-    
-    # initialize base data
-    init_base_data(app)
 
     # Developer-friendly root & favicon handlers to avoid confusing 404 logs
     @app.route("/")

@@ -58,7 +58,11 @@ class Config:
 
     # Base dataset
     DATASET_PATH = os.environ.get("DATASET_PATH", "./data/tiny-imagenet-200/train")
-    ENABLE_BATCH_UPLOAD = os.environ.get("ENABLE_BATCH_UPLOAD", "false").lower() == "true"
+    ENABLE_INITIALIZATION = os.environ.get("ENABLE_INITIALIZATION", "false").lower() == "true"
+    BASE_UPLOAD_BATCH_SIZE = int(os.environ.get("BASE_UPLOAD_BATCH_SIZE", "32"))
+    OCR_DET_BATCH_SIZE = int(os.environ.get("OCR_DET_BATCH_SIZE", "2"))
+    OCR_THRESHOLD = float(os.environ.get("OCR_THRESHOLD", "0.3"))
+    LEN_SUBSET = int(os.environ.get("LEN_SUBSET", "-1"))
 
 
 class DevConfig(Config):

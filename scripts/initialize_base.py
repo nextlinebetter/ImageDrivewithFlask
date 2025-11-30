@@ -1,22 +1,40 @@
 import os
+from time import perf_counter
+import bcrypt
 import uuid
 import hashlib
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
 from werkzeug.utils import secure_filename
-from app.models import Image, Embedding, OCRText, db
-from app.services.clip_pipeline import embed_image_path_batch
+from app import create_app
+from app.models import User, Image, Embedding, OCRText, db
+from app.services.clip_pipeline import embed_image_path_batch, get_model_name
 from app.services.embedding_io import l2_normalize, to_bytes
-from app.services.ocr_pipeline import ocr_extract_from_image_path_batch
+from app.services.ocr_pipeline import ocr_extract_from_image_path_batch  # switchable
 
 
-def batch_upload_dataset():
+_EXAMPLE_USERNAME = "example_user"
+_EXAMPLE_PASSWORD = "example_user"
+
+
+def hash_password(raw: str) -> str:
+    return bcrypt.hashpw(raw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def initialize_example_user():
+    if User.query.filter_by(username=_EXAMPLE_USERNAME).first():
+        return
+    user = User(username=_EXAMPLE_USERNAME, password_hash=hash_password(_EXAMPLE_PASSWORD))
+    db.session.add(user)
+    db.session.commit()
+    return user.id
+    
+
+def batch_upload_dataset(user_id):
     dataset_path = current_app.config.get("DATASET_PATH", "./data/tiny-imagenet-200/train")
     if not os.path.exists(dataset_path):
         current_app.logger.error("Dataset path does not exist: %s", dataset_path)
         return
-    
-    current_app.logger.info("Starting batch upload from dataset: %s", dataset_path)
     
     image_paths = []
     # TODO: read extensions from app.config
@@ -43,15 +61,20 @@ def batch_upload_dataset():
         current_app.logger.warning("No images found in dataset")
         return
     
-    _process_images_in_batches(image_paths)
+    len_subset = current_app.config.get("LEN_SUBSET", -1)
+    current_app.logger.info("Starting batch upload from dataset: %s", dataset_path)
+    if len_subset >= 0:
+        current_app.logger.info("   Select subset of length %d", len_subset)
+    else:
+        len_subset = None
+    _process_images_in_batches(image_paths, user_id, len_subset=len_subset)
 
 
-def _process_images_in_batches(image_paths, batch_size=32):    
-    total_images = len(image_paths)
+def _process_images_in_batches(image_paths, owner_id, len_subset=None):
+    batch_size = current_app.config.get("BASE_UPLOAD_BATCH_SIZE", 32)    
+    total_images = len_subset or len(image_paths)
     processed_count = 0
     success_count = 0
-    
-    owner_id = 1  # public user
     
     for i in range(0, total_images, batch_size):
         batch_paths = image_paths[i:i + batch_size]
@@ -63,18 +86,23 @@ def _process_images_in_batches(image_paths, batch_size=32):
             current_batch_num, total_batches, len(batch_paths)
         )
         
+        clip_st = perf_counter()  # timing
         clip_embeddings = None
         try:
-            clip_embeddings = embed_image_path_batch(batch_paths, batch_size=8)
+            clip_embeddings = embed_image_path_batch(batch_paths, batch_size=batch_size)
         except Exception as e:
             current_app.logger.error("Failed to batch embed images: %s", e)
+        clip_ed = perf_counter()
         
+        ocr_st = perf_counter()
         ocr_texts = None
         try:
-            ocr_texts = ocr_extract_from_image_path_batch(batch_paths, batch_size=8)
+            ocr_texts = ocr_extract_from_image_path_batch(batch_paths)
         except Exception as e:
             current_app.logger.error("Failed to batch OCR images: %s", e)
-        
+        ocr_ed = perf_counter()
+
+        upload_st = perf_counter()        
         batch_success = 0
         for j, image_path in enumerate(batch_paths):
             try:
@@ -97,7 +125,7 @@ def _process_images_in_batches(image_paths, batch_size=32):
                     mime_type="image/jpeg",  # 
                     checksum=checksum,
                     status="READY",
-                    visibility="public" if owner_id == 1 else "private",
+                    visibility="private",
                 )
                 db.session.add(img)
                 db.session.flush()  # get img.id, but not commit yet
@@ -111,7 +139,7 @@ def _process_images_in_batches(image_paths, batch_size=32):
                             image_id=img.id, 
                             vec=payload, 
                             dim=len(norm_vec), 
-                            model_version=current_app.config.get("CLIP_MODEL_NAME", "clip-ViT-B-32")
+                            model_version=get_model_name(),
                         )
                         db.session.add(emb)
                 
@@ -145,6 +173,8 @@ def _process_images_in_batches(image_paths, batch_size=32):
         except SQLAlchemyError as e:
             current_app.logger.error("Failed to commit batch %d: %s", current_batch_num, e)
             db.session.rollback()
+        upload_ed = perf_counter()
+        current_app.logger.debug("\n**Time stats**\nCLIP: %.3fs\nOCR: %.3fs\nUpload: %.3fs", clip_ed-clip_st, ocr_ed-ocr_st, upload_ed-upload_st)
     
     current_app.logger.info(
         "Batch upload completed: %d/%d images successfully processed", 
@@ -165,13 +195,24 @@ def _compute_file_checksum(file_path):
         return None
 
 
-def init_base_data(app):
+def main():
+    app = create_app()
     with app.app_context():
-        if app.config.get("ENABLE_BATCH_UPLOAD", False):
+        if app.config.get("ENABLE_INITIALIZATION", False):
             try:
-                current_app.logger.info("Starting batch dataset upload...")
-                batch_upload_dataset()
-                current_app.logger.info("Batch dataset upload completed.")
-            except Exception as e:
-                current_app.logger.error("Batch dataset upload failed: %s", e)
+                db.create_all()  # ensure tables exist (dev convenience)
 
+                current_app.logger.info("Creating example user...")
+                initialize_example_user()
+                current_app.logger.info("Successfully created example user.")
+
+                current_app.logger.info("Start batch upload base dataset...")
+                batch_upload_dataset()
+                current_app.logger.info("Successfully uploaded base dataset.")
+
+            except Exception as e:
+                current_app.logger.error("Failed to upload base dataset: %s", e)
+
+
+if __name__ == '__main__':
+    main()

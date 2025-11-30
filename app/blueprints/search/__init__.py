@@ -35,7 +35,10 @@ def search_by_vector():
     rows = (
         db.session.query(Image.id, Embedding.vec, Embedding.dim)
         .join(Embedding, Embedding.image_id == Image.id)
-        .filter(Image.owner_id == user_id, Image.status == "READY")
+        .filter(
+            Image.owner_id == user_id,
+            Image.status == "READY"
+        )
         .order_by(Image.id.asc())
         .all()
     )
@@ -66,26 +69,8 @@ def search_by_vector():
     except ValueError as e:
         # Common case: 查询向量维度与索引维度不一致
         return error("VECTOR_DIM_MISMATCH", str(e))
-    except ImportError:
-        import math
-
-        def l2_norm(a: List[float]) -> float:
-            s = math.sqrt(sum(x * x for x in a))
-            return s or 1.0
-
-        def cosine(a: List[float], b: List[float]) -> float:
-            return sum(x * y for x, y in zip(a, b)) / (l2_norm(a) * l2_norm(b))
-
-        scored: List[Tuple[int, float]] = []
-        for i, v in enumerate(vectors):
-            scored.append((i, cosine(vector, v)))
-        scored.sort(key=lambda x: x[1], reverse=True)
-        picked = scored[: min(k, len(scored))]
-        results = [
-            {"image_id": image_ids[i], "similarity": float(s), "rank": r + 1}
-            for r, (i, s) in enumerate(picked)
-        ]
-        return ok({"results": results, "count": len(results), "engine": "python-fallback"})
+    except Exception as e:
+        return error("", str(e))
 
 @search_bp.post("/text")
 @jwt_required()
@@ -116,7 +101,10 @@ def search_text():
     rows = (
         db.session.query(Image.id, Embedding.vec, Embedding.dim)
         .join(Embedding, Embedding.image_id == Image.id)
-        .filter(Image.owner_id == user_id, Image.status == "READY")
+        .filter(
+            Image.owner_id == user_id,
+            Image.status == "READY"
+        )
         .order_by(Image.id.asc())
         .all()
     )
@@ -143,26 +131,8 @@ def search_text():
         return ok({"results": results, "count": len(results)})
     except ValueError as e:
         return error("VECTOR_DIM_MISMATCH", str(e))
-    except ImportError:
-        import math
-
-        def l2_norm(a: List[float]) -> float:
-            s = math.sqrt(sum(x * x for x in a))
-            return s or 1.0
-
-        def cosine(a: List[float], b: List[float]) -> float:
-            return sum(x * y for x, y in zip(a, b)) / (l2_norm(a) * l2_norm(b))
-
-        scored: List[Tuple[int, float]] = []
-        for i, v in enumerate(vectors):
-            scored.append((i, cosine(vec, v)))
-        scored.sort(key=lambda x: x[1], reverse=True)
-        picked = scored[: min(k, len(scored))]
-        results = [
-            {"image_id": image_ids[i], "similarity": float(s), "rank": r + 1}
-            for r, (i, s) in enumerate(picked)
-        ]
-        return ok({"results": results, "count": len(results), "engine": "python-fallback"})
+    except Exception as e:
+        return error("", str(e))
 
 @search_bp.get("/image/<int:image_id>/similar")
 @jwt_required()
@@ -183,7 +153,10 @@ def similar_images(image_id: int):
     rows = (
         db.session.query(Image.id, Embedding.vec, Embedding.dim)
         .join(Embedding, Embedding.image_id == Image.id)
-        .filter(Image.owner_id == user_id, Image.status == "READY")
+        .filter(
+            Image.owner_id == user_id,
+            Image.status == "READY"
+        )
         .order_by(Image.id.asc())
         .all()
     )
@@ -209,7 +182,6 @@ def similar_images(image_id: int):
     if len(vectors) <= 1:
         return ok({"results": []})
 
-    # 优先使用 FAISS；若缺依赖，则退回到纯 Python 余弦近邻（仅用于小规模调试）。
     try:
         # Use persistent index if available
         ref_vec = vectors[ref_idx]
@@ -226,28 +198,5 @@ def similar_images(image_id: int):
             pairs = [(iid, sim) for (iid, sim) in temp_pairs if iid != image_id][:k]
         results = [{"image_id": iid, "similarity": sim, "rank": r + 1} for r, (iid, sim) in enumerate(pairs)]
         return ok({"results": results, "count": len(results)})
-    except ImportError:
-        # 纯 Python 备用实现（归一化点积）
-        import math
-
-        def l2_norm(v: List[float]) -> float:
-            return math.sqrt(sum(x * x for x in v)) or 1.0
-
-        def cosine(a: List[float], b: List[float]) -> float:
-            na = l2_norm(a)
-            nb = l2_norm(b)
-            return sum(x * y for x, y in zip(a, b)) / (na * nb)
-
-        ref = vectors[ref_idx]
-        scored: List[Tuple[int, float]] = []
-        for i, v in enumerate(vectors):
-            if i == ref_idx:
-                continue
-            scored.append((i, cosine(ref, v)))
-        scored.sort(key=lambda x: x[1], reverse=True)
-        picked = scored[:k]
-        results = [
-            {"image_id": image_ids[i], "similarity": float(s), "rank": r + 1}
-            for r, (i, s) in enumerate(picked)
-        ]
-        return ok({"results": results, "count": len(results), "engine": "python-fallback"})
+    except Exception as e:
+        return error("", str(e))
