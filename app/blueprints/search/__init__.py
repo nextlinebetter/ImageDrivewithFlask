@@ -91,7 +91,7 @@ def search_text():
         return error("INVALID_K", "k 必须为整数")
 
     vec = embed_text(query)
-    if not vec:
+    if vec is None:
         return error(
             "EMBED_TEXT_FAILED",
             "文本嵌入失败或依赖缺失，请确认已安装 sentence-transformers/numpy/Pillow。",

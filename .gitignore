@@ -27,6 +27,7 @@ frontend/package-lock.json
 
 # VS Code
 .history/
+.vscode/
 
 # Test results
 MyTestResults/
