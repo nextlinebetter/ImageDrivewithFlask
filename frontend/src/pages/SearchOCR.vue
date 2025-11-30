@@ -60,7 +60,7 @@ async function onSearch() {
       query: q.value,
       top_k: 10,
     });
-    rows.value = data.data.results || [];
+    rows.value = data.data.items || [];
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.message || "检索失败");
   } finally {

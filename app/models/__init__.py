@@ -6,7 +6,7 @@ Notes:
 """
 from __future__ import annotations
 import datetime as dt
-from typing import Optional
+from datetime import UTC
 from app.extensions import db  # use app-wide SQLAlchemy instance
 
 __all__ = [
@@ -27,8 +27,8 @@ class User(db.Model):  # type: ignore
     email = db.Column(db.String(128), unique=True, nullable=True, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=dt.datetime.now(UTC), nullable=False)
+    updated_at = db.Column(db.DateTime, default=dt.datetime.now(UTC), onupdate=dt.datetime.now(UTC), nullable=False)
 
     images = db.relationship("Image", back_populates="owner", lazy="dynamic")
 
@@ -45,8 +45,8 @@ class Image(db.Model):  # type: ignore
     checksum = db.Column(db.String(64), nullable=True, index=True)  # sha256 or md5
     status = db.Column(db.String(32), nullable=False, default="READY", index=True)
     visibility = db.Column(db.String(32), nullable=False, default="private", index=True)
-    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=dt.datetime.now(UTC), nullable=False)
+    updated_at = db.Column(db.DateTime, default=dt.datetime.now(UTC), onupdate=dt.datetime.now(UTC), nullable=False)
 
     owner = db.relationship("User", back_populates="images")
     embedding = db.relationship("Embedding", back_populates="image", uselist=False, lazy="select")
@@ -62,7 +62,7 @@ class Embedding(db.Model):  # type: ignore
     vec = db.Column(db.LargeBinary, nullable=False)
     dim = db.Column(db.Integer, nullable=False)
     model_version = db.Column(db.String(64), nullable=False, default="clip-vit-b32")
-    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=dt.datetime.now(UTC), nullable=False)
 
     image = db.relationship("Image", back_populates="embedding")
 
@@ -73,7 +73,7 @@ class OCRText(db.Model):  # type: ignore
     image_id = db.Column(db.Integer, db.ForeignKey("images.id"), nullable=False, unique=True, index=True)
     text = db.Column(db.Text, nullable=True)
     avg_confidence = db.Column(db.Float, nullable=True)
-    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=dt.datetime.now(UTC), nullable=False)
 
     image = db.relationship("Image", back_populates="ocr_text")
 
@@ -82,7 +82,7 @@ class Tag(db.Model):  # type: ignore
     __tablename__ = "tags"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(64), unique=True, nullable=False, index=True)
-    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=dt.datetime.now(UTC), nullable=False)
 
 
 class ImageTag(db.Model):  # type: ignore
@@ -90,7 +90,7 @@ class ImageTag(db.Model):  # type: ignore
     id = db.Column(db.Integer, primary_key=True)
     image_id = db.Column(db.Integer, db.ForeignKey("images.id"), nullable=False, index=True)
     tag_id = db.Column(db.Integer, db.ForeignKey("tags.id"), nullable=False, index=True)
-    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=dt.datetime.now(UTC), nullable=False)
 
     # Could add uniqueness constraint later: (image_id, tag_id)
     image = db.relationship("Image", back_populates="tags")
@@ -107,6 +107,6 @@ class AuditLog(db.Model):  # type: ignore
     ip = db.Column(db.String(64), nullable=True)
     user_agent = db.Column(db.String(255), nullable=True)
     extra = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=dt.datetime.now(UTC), nullable=False, index=True)
 
     user = db.relationship("User")

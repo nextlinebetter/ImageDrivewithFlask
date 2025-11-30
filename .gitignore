@@ -28,6 +28,7 @@ frontend/package-lock.json
 # VS Code
 .history/
 .vscode/
+.mypy_cache/
 
 # Test results
 MyTestResults/

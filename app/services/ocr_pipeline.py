@@ -5,7 +5,6 @@ and call `extract_text_from_image_path` directly to keep behavior consistent.
 Falls back to None on any error.
 """
 from __future__ import annotations
-
 from time import perf_counter
 from concurrent.futures import ThreadPoolExecutor
 from PIL import Image
@@ -17,7 +16,7 @@ _PIPELINE: OCRPipeline | None = None
 
 
 class OCRPipeline:
-    
+
     def __init__(self, det_arch="db_mobilenet_v3_large", reco_arch="crnn_mobilenet_v3_large", det_bs=2):
         # lazy import
         try:
@@ -25,7 +24,7 @@ class OCRPipeline:
             from doctr.models import ocr_predictor
         except ImportError as e:
             current_app.logger.exception("Failed to import dependencies for OCRPipeline: %s", e)
-        
+
         self.det_arch = det_arch
         self.reco_arch = reco_arch
         try:
@@ -71,21 +70,21 @@ class OCRPipeline:
         if not text or (not any(char.isalpha() for char in text) or len(text) < 3) \
         or all(len(word) == 1 for word in text.split() if word.isalpha()):
             return None
-            
+
         return text.strip()
 
     def extract_from_image_path(self, image_path: str, ocr_threshold: float = 0.3) -> str | None:
         image_np = self._process_image_file(image_path)
         if image_np is None:
             return None
-        
+
         model_result = self.model([image_np])
         if model_result is None or not model_result.pages:
             return None
-        
+
         text_result = self._process_page_result(model_result.pages[0], ocr_threshold=ocr_threshold)
         current_app.logger.info("Successfully extracted OCR text from '%s'.", image_path)
-        
+
         return text_result
 
     def extract_from_image_path_batch(self, image_paths: list[str], ocr_threshold: float = 0.3) -> list[str | None]:
@@ -100,11 +99,11 @@ class OCRPipeline:
             current_batch_num = (i // self.bs) + 1
 
             # current_app.logger.info("  Batch %d/%d: Pre-processing {len(batch_paths)} images (I/O)...", current_batch_num, total_batches)
-            
+
             # pre_st = perf_counter()
             with ThreadPoolExecutor() as executor:
                 images_np = list(executor.map(self._process_image_file, batch_paths))
-            
+
             valid_images = [img for img in images_np if img is not None]
             if not valid_images:
                 all_texts.extend([None] * len(batch_paths))
@@ -122,7 +121,7 @@ class OCRPipeline:
             # current_app.logger.info("  Batch %d/%d: Post-processing results (CPU)...", current_batch_num, total_batches)
             with ThreadPoolExecutor() as executor:
                 texts = list(executor.map(lambda page: self._process_page_result(page, ocr_threshold=ocr_threshold), results.pages))
-            
+
             text_iter = iter(texts)
             batch_results = []
             for img in images_np:
@@ -130,19 +129,18 @@ class OCRPipeline:
                     batch_results.append(None)
                 else:
                     batch_results.append(next(text_iter, None))
-            
+
             all_texts.extend(batch_results)
             # post_ed = perf_counter()
 
             # current_app.logger.debug("\n**Time stats**\nPre: %.3fs\nInference: %.3fs\nPost: %.3fs", pre_ed-pre_st, inf_ed-inf_st, post_ed-post_st)
-            
+
         current_app.logger.info("Batch processing complete.")
         return all_texts
 
 
-def _initialize_pipeline() -> None:
-    global _PIPELINE
-    _PIPELINE = OCRPipeline(
+def _initialize_pipeline() -> OCRPipeline:
+    return OCRPipeline(
         det_arch=current_app.config.get("OCR_DET_ARCH", "db_mobilenet_v3_large"),
         reco_arch=current_app.config.get("OCR_RECO_ARCH", "crnn_mobilenet_v3_large"),
         det_bs=current_app.config.get("OCR_DET_BATCH_SIZE", 2)
@@ -152,25 +150,25 @@ def _initialize_pipeline() -> None:
 def ocr_extract_from_image_path(image_path: str) -> str | None:
     global _PIPELINE
     if _PIPELINE is None:
-        _initialize_pipeline()
+        _PIPELINE = _initialize_pipeline()
     if _PIPELINE.model is None:
         current_app.logger.error("OCR model is not loaded.")
         return None
-    
+
     return _PIPELINE.extract_from_image_path(image_path, ocr_threshold=current_app.config.get("OCR_THRESHOLD", 0.3))
 
 
 def ocr_extract_from_image_path_batch(image_paths: list[str]) -> list[str | None]:
     global _PIPELINE
-        
+
     total_images = len(image_paths)
-    
+
     if _PIPELINE is None:
-        _initialize_pipeline()
+        _PIPELINE = _initialize_pipeline()
     if _PIPELINE.model is None:
         current_app.logger.error("OCR model is not loaded.")
         return [None] * total_images
-    
+
     return _PIPELINE.extract_from_image_path_batch(image_paths, ocr_threshold=current_app.config.get("OCR_THRESHOLD", 0.3))
 
 

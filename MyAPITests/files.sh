@@ -1,18 +1,18 @@
-# run scripts/initialize_public_user.sh first to ensure public user exists
+# run scripts/initialize_example_user.sh first to ensure example user exists
 BASE_URL="http://localhost:5000/api/v1"
 OUTPUT_FILE="MyTestResults/files.txt"
-PUBLIC_USERNAME="public"
-PUBLIC_PASSWORD="public"
+EXAMPLE_USERNAME="example_user"
+EXAMPLE_PASSWORD="example_user"
 
 # Clear previous output
 > $OUTPUT_FILE
 
 # Test 1: /files/upload
 # Test 1.1: upload a valid local image
-# login as public user to get access token, refresh token assumed not needed
+# login as example user to get access token, refresh token assumed not needed
 TOKEN=$(curl -X POST ${BASE_URL}/auth/login \
     -H "Content-Type: application/json" \
-    -d '{"username": "'$PUBLIC_USERNAME'", "password": "'$PUBLIC_PASSWORD'"}' | jq -r '.data.access_token')
+    -d '{"username": "'$EXAMPLE_USERNAME'", "password": "'$EXAMPLE_PASSWORD'"}' | jq -r '.data.access_token')
 
 echo ${TOKEN} >> $OUTPUT_FILE
 

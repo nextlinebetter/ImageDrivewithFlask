@@ -3,13 +3,8 @@ from __future__ import annotations
 import os
 from flask import Flask, redirect
 from dotenv import load_dotenv
-# Load env before import get_config
-load_dotenv(override=False)
-
-from pathlib import Path
-from .config import get_config
 from .extensions import init_extensions
-from .utils.errors import register_error_handlers  # new
+from .utils.errors import register_error_handlers
 from .blueprints.core import core_bp
 from .blueprints.auth import auth_bp
 from .blueprints.files import files_bp
@@ -17,6 +12,10 @@ from .blueprints.ingest import ingest_bp
 from .blueprints.search import search_bp
 from .blueprints.search_ocr import search_ocr_bp
 from .blueprints.analytics import analytics_bp
+
+# Load env before import get_config
+load_dotenv(override=False)
+from .config import get_config  # noqa: E402
 
 BLUEPRINTS = [
     core_bp,
@@ -28,9 +27,11 @@ BLUEPRINTS = [
     analytics_bp,
 ]
 
+
 def register_blueprints(app: Flask) -> None:
     for bp in BLUEPRINTS:
         app.register_blueprint(bp)
+
 
 def create_app(config_name: str | None = None) -> Flask:
     """Create and configure the Flask application.
@@ -80,5 +81,6 @@ def create_app(config_name: str | None = None) -> Flask:
             )
 
     return app
+
 
 __all__ = ["create_app"]

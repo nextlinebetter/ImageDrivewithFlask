@@ -1,7 +1,8 @@
 from __future__ import annotations
-from flask import Blueprint, jsonify, current_app
 import sys
 from importlib.util import find_spec
+from flask import Blueprint, jsonify, current_app
+
 from app.utils.errors import AppError
 from app.services.clip_pipeline import get_embedding_dim
 

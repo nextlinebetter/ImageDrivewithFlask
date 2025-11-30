@@ -6,7 +6,7 @@ from app.extensions import db
 from app.models import Image, Embedding
 from app.services.embedding_io import from_bytes
 from app.services.vector_index import FaissVectorIndex
-from app.services import index_store
+from app.services.index_store import search_topk
 from app.services.clip_pipeline import embed_text
 from app.utils.responses import ok, error
 
@@ -57,7 +57,7 @@ def search_by_vector():
     # 优先使用持久化索引（per-user），其次使用临时内存索引，再退回纯 Python
     try:
         # Try persistent per-user index first
-        pairs = index_store.search_topk(user_id, vector, k=k)
+        pairs = search_topk(user_id, vector, k=k)
         if not pairs:
             # Build ephemeral index as fallback
             index = FaissVectorIndex(norm=True)
@@ -71,6 +71,7 @@ def search_by_vector():
         return error("VECTOR_DIM_MISMATCH", str(e))
     except Exception as e:
         return error("", str(e))
+
 
 @search_bp.post("/text")
 @jwt_required()
@@ -121,7 +122,7 @@ def search_text():
         vectors.append(v)
 
     try:
-        pairs = index_store.search_topk(user_id, vec, k=k)
+        pairs = search_topk(user_id, vec, k=k)
         if not pairs:
             index = FaissVectorIndex(norm=True)
             index.build(vectors)
@@ -133,6 +134,7 @@ def search_text():
         return error("VECTOR_DIM_MISMATCH", str(e))
     except Exception as e:
         return error("", str(e))
+
 
 @search_bp.get("/image/<int:image_id>/similar")
 @jwt_required()
@@ -185,7 +187,7 @@ def similar_images(image_id: int):
     try:
         # Use persistent index if available
         ref_vec = vectors[ref_idx]
-        pairs = index_store.search_topk(user_id, ref_vec, k=k + 1)
+        pairs = search_topk(user_id, ref_vec, k=k + 1)
         # remove self
         pairs = [(iid, sim) for (iid, sim) in pairs if iid != image_id][:k]
         if not pairs:

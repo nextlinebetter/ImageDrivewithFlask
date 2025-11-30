@@ -48,7 +48,7 @@ class Config:
 
     # CLIP model (for online embedding)
     CLIP_MODEL_NAME = os.environ.get("CLIP_MODEL_NAME", "clip-ViT-B-32")
-    
+
     # OCR model architectures
     OCR_DET_ARCH = os.environ.get("OCR_DET_ARCH", "db_mobilenet_v3_large")
     OCR_RECO_ARCH = os.environ.get("OCR_RECO_ARCH", "crnn_mobilenet_v3_large")

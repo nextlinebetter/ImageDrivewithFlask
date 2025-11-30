@@ -2,15 +2,16 @@ from __future__ import annotations
 import os
 import uuid
 import hashlib
-from typing import Tuple
+from werkzeug.utils import secure_filename
 from flask import Blueprint, current_app, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from werkzeug.utils import secure_filename
+
 from app.extensions import db
 from app.models import Image, Embedding, OCRText
 from app.services.clip_pipeline import embed_image_path
 from app.services.ocr_pipeline import ocr_extract_from_image_path
 from app.services.embedding_io import l2_normalize, to_bytes
+from app.services.index_store import push_vector_id_pairs
 from app.utils.responses import ok, error
 
 files_bp = Blueprint("files", __name__, url_prefix="/api/v1/files")
@@ -53,7 +54,7 @@ def upload_file():
         return error("INVALID_MIME", f"File mime not supported: {mime}")
 
     # Prepare paths
-    upload_dir = current_app.config.get("UPLOAD_DIR")
+    upload_dir = current_app.config.get("UPLOAD_DIR", os.path.join(os.getcwd(), "uploads"))
     _ensure_upload_dir(upload_dir)
 
     # Filename handling
@@ -87,15 +88,28 @@ def upload_file():
     if vec is not None:
         norm_vec = l2_normalize(vec)
         payload = to_bytes(norm_vec)
-        emb = Embedding(image_id=img.id, vec=payload, dim=len(norm_vec), model_version=current_app.config.get("CLIP_MODEL_NAME", "clip-ViT-B-32"))
+        emb = Embedding(
+            image_id=img.id,
+            vec=payload,
+            dim=len(norm_vec),
+            model_version=current_app.config.get("CLIP_MODEL_NAME", "clip-ViT-B-32")
+        )
         db.session.add(emb)
         db.session.commit()
+
+        # update vector index
+        if not push_vector_id_pairs(owner_id, [norm_vec], [img.id]):
+            current_app.logger.warning("Failed to add image (id: '%d') and its vector to existing index", img.id)
 
     # Online OCR
     text = ocr_extract_from_image_path(abs_public_path)
     row = OCRText.query.filter_by(image_id=img.id).first()
     if row is None:
-        row = OCRText(image_id=img.id, text=text, avg_confidence=None)
+        row = OCRText(
+            image_id=img.id,
+            text=text,
+            avg_confidence=None
+        )
         db.session.add(row)
         db.session.commit()
     else:

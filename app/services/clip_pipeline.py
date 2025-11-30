@@ -1,15 +1,14 @@
 from __future__ import annotations
-
 from PIL import Image
 from flask import current_app
 import numpy as np
 
 
 _PIPELINE: CLIPPipeline | None = None
-    
-    
+
+
 class CLIPPipeline:
-    
+
     def __init__(self, model_name='clip-ViT-B-32'):
         # lazy import
         try:
@@ -17,7 +16,7 @@ class CLIPPipeline:
             from sentence_transformers import SentenceTransformer
         except ImportError as e:
             current_app.logger.exception("Failed to import dependencies for CLIPPipeline: %s", e)
-        
+
         self.model_name = model_name
         try:
             self.device = "mps" if torch.backends.mps.is_available() else \
@@ -25,14 +24,14 @@ class CLIPPipeline:
         except Exception:
             self.device = "cpu"
         current_app.logger.info("Loading CLIP model '%s' (using device: %s)...", model_name, self.device)
-        
+
         try:
             self.model = SentenceTransformer(model_name, device=self.device)
             current_app.logger.info("Successfully loaded CLIP model.")
         except Exception as e:
             current_app.logger.exception("Failed to load CLIP model '%s': %s", model_name, e)
             self.model = None
-        
+
         try:
             self.embedding_dim = self.model.get_sentence_embedding_dimension()
         except Exception:
@@ -55,7 +54,7 @@ class CLIPPipeline:
         except Exception as e:
             current_app.logger.exception("Failed to embed text '%s': %s", text_query, e)
             return None
-            
+
     def embed_image_path_batch(self, image_paths: list[str], batch_size: int = 32) -> np.ndarray | None:
         current_app.logger.info("Start batch embedding %d images (batch_size: %d)...", len(image_paths), batch_size)
         try:
@@ -70,14 +69,13 @@ class CLIPPipeline:
         except Exception as e:
             current_app.logger.exception("Failed to batch embed images: %s", e)
             return None
-        
 
-def _initialze_pipeline() -> None:
-    global _PIPELINE
-    _PIPELINE = CLIPPipeline(
+
+def _initialze_pipeline() -> CLIPPipeline:
+    return CLIPPipeline(
         model_name=current_app.config.get("CLIP_MODEL_NAME", "clip-ViT-B-32")
     )
-    
+
 
 def embed_image_path(path: str) -> np.ndarray | None:
     """Embed a single image file and return a np.ndarray. Returns None on failure.
@@ -85,22 +83,22 @@ def embed_image_path(path: str) -> np.ndarray | None:
     """
     global _PIPELINE
     if _PIPELINE is None:
-        _initialze_pipeline()
+        _PIPELINE = _initialze_pipeline()
     if _PIPELINE.model is None:
         current_app.logger.error("CLIP model is not loaded.")
         return None
-    
+
     return _PIPELINE.embed_image_path(path)
 
 
 def embed_text(text: str) -> np.ndarray | None:
     global _PIPELINE
     if _PIPELINE is None:
-        _initialze_pipeline()
+        _PIPELINE = _initialze_pipeline()
     if _PIPELINE.model is None:
         current_app.logger.error("CLIP model is not loaded.")
         return None
-    
+
     return _PIPELINE.embed_text(text)
 
 
@@ -110,11 +108,11 @@ def embed_image_path_batch(image_paths: list[str], batch_size: int = 32) -> np.n
     """
     global _PIPELINE
     if _PIPELINE is None:
-        _initialze_pipeline()
+        _PIPELINE = _initialze_pipeline()
     if _PIPELINE.model is None:
         current_app.logger.error("CLIP model is not loaded.")
         return None
-    
+
     return _PIPELINE.embed_image_path_batch(image_paths, batch_size=batch_size)
 
 

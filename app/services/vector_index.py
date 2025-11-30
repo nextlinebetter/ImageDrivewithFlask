@@ -11,11 +11,6 @@ from typing import List
 
 class FaissVectorIndex:
     def __init__(self, norm: bool = True):
-        """创建索引实例。
-
-        参数：
-        - norm: 是否在内部对向量做 L2 归一化（推荐 True）。
-        """
         self.norm = norm
         self.index = None  # faiss.IndexFlatL2 | None
         self.dim: int | None = None
@@ -61,6 +56,30 @@ class FaissVectorIndex:
 
         self.dim = int(arr.shape[1])
         self.index = faiss.IndexFlatL2(self.dim)
+        self.index.add(arr)
+
+    def push(self, vectors) -> None:
+        self._need_numpy()
+        self._need_faiss()
+        import numpy as np
+
+        if self.index is None:
+            raise ValueError("索引尚未构建")
+
+        arr = np.asarray(vectors, dtype="float32")
+        if arr.ndim == 1:
+            arr = arr[np.newaxis, :]
+        if arr.ndim != 2:
+            raise ValueError("vectors 必须是单个向量，或者形如 (n, d) 的多个向量")
+        if self.norm:
+            # 避免除零
+            norms = np.linalg.norm(arr, axis=1, keepdims=True)
+            norms[norms == 0] = 1.0
+            arr = arr / norms
+
+        if self.dim != int(arr.shape[1]):
+            raise ValueError("vector 的维度和当前 Index 不符合")
+
         self.index.add(arr)
 
     def search_topk(self, queries, k: int = 10):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy import or_
+
 from app.models import OCRText, Image
 from app.utils.responses import ok, error
 

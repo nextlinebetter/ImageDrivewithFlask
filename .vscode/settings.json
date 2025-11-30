@@ -6,7 +6,7 @@
     "**/*.pyc": true,
     "frontend/dist": true,
     "frontend/node_modules": true,
-    "uploads": true
+    "uploads": false
   },
   "search.exclude": {
     "**/.DS_Store": true,

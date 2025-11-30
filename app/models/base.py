@@ -1,13 +1,14 @@
 """Common mixins for SQLAlchemy models."""
 from __future__ import annotations
 import datetime as dt
+from datetime import UTC
 from app.extensions import db
 
 
 class TimestampMixin:
-    created_at = db.Column(db.DateTime, default=dt.datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=dt.datetime.now(UTC), nullable=False)
     updated_at = db.Column(
-        db.DateTime, default=dt.datetime.utcnow, onupdate=dt.datetime.utcnow, nullable=False
+        db.DateTime, default=dt.datetime.now(UTC), onupdate=dt.datetime.now(UTC), nullable=False
     )
 
 

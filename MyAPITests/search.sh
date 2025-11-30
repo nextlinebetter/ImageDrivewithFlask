@@ -1,8 +1,8 @@
 # run scripts/initialize_example_user.sh first to ensure example user exists
 BASE_URL="http://localhost:5000/api/v1"
 OUTPUT_FILE="MyTestResults/search.txt"
-EXAMPLE_USERNAME="public"
-EXAMPLE_PASSWORD="public"
+EXAMPLE_USERNAME="example_user"
+EXAMPLE_PASSWORD="example_user"
 
 TEXT_QUERY="goldfish"
 K="5"
