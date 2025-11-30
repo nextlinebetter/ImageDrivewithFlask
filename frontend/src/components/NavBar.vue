@@ -21,30 +21,38 @@
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item @click="$router.push('/upload')">上传</el-dropdown-item>
-              <el-dropdown-item divided @click="onLogout">退出登录</el-dropdown-item>
+              <el-dropdown-item @click="$router.push('/upload')"
+                >上传</el-dropdown-item
+              >
+              <el-dropdown-item divided @click="onLogout"
+                >退出登录</el-dropdown-item
+              >
             </el-dropdown-menu>
           </template>
         </el-dropdown>
       </template>
       <template v-else>
         <el-button link @click="$router.push('/login')">登录</el-button>
-        <el-button type="primary" @click="$router.push('/register')">注册</el-button>
+        <el-button type="primary" @click="$router.push('/register')"
+          >注册</el-button
+        >
       </template>
     </div>
   </el-header>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useAuth } from '../store_auth'
-import { ArrowDown, Picture } from '@element-plus/icons-vue'
+import { computed } from "vue";
+import { useAuth } from "../store_auth";
+import { ArrowDown, Picture } from "@element-plus/icons-vue";
 
-const auth = useAuth()
-const initials = computed(() => (auth.user?.username?.[0] || 'U').toUpperCase())
+const auth = useAuth();
+const initials = computed(() =>
+  (auth.user?.username?.[0] || "U").toUpperCase()
+);
 
 function onLogout() {
-  auth.logout()
+  auth.logout();
 }
 </script>
 
@@ -70,6 +78,13 @@ function onLogout() {
   align-items: center;
   gap: 8px;
 }
-.user { display: inline-flex; align-items: center; gap: 6px; }
-.username { font-size: 14px; color: var(--el-text-color-regular); }
+.user {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.username {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+}
 </style>
